@@ -23,9 +23,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.2', '8.3', '8.4', '8.5', '8.6']
         ts: ['nts', 'zts']
         libc: ['glibc', 'musl']
+        exclude:
+          # PHP 8.6+ official images are ZTS only: there is no NTS build and no
+          # -zts tag (docker-library/php#1686), so php:8.6-cli is already ZTS.
+          - php: '8.6'
+            ts: 'nts'
     steps:
       - uses: actions/checkout@v4
 
@@ -48,11 +53,18 @@ jobs:
           VERSION="${{ github.event.inputs.tag || github.ref_name }}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+          # PHP 8.6+ official images are ZTS only: the plain tags (cli, alpine)
+          # are already thread-safe and there is no -zts tag to use.
+          BASE_ZTS_TAG="-zts"
+          if [[ "$(printf '%s\n' "${{ matrix.php }}" 8.6 | sort -V | head -1)" == "8.6" ]]; then
+            BASE_ZTS_TAG=""
+          fi
+
           if [[ "${{ matrix.libc }}" == "musl" ]]; then
             ALPINE_SUFFIX="-alpine"
             DOCKERFILE="docker/Dockerfile.alpine"
             if [[ "${{ matrix.ts }}" == "zts" ]]; then
-              echo "php_image=php:${{ matrix.php }}-zts-alpine" >> "$GITHUB_OUTPUT"
+              echo "php_image=php:${{ matrix.php }}${BASE_ZTS_TAG}-alpine" >> "$GITHUB_OUTPUT"
             else
               echo "php_image=php:${{ matrix.php }}-alpine" >> "$GITHUB_OUTPUT"
             fi
@@ -60,13 +72,19 @@ jobs:
             ALPINE_SUFFIX=""
             DOCKERFILE="docker/Dockerfile"
             if [[ "${{ matrix.ts }}" == "zts" ]]; then
-              echo "php_image=php:${{ matrix.php }}-zts" >> "$GITHUB_OUTPUT"
+              if [[ -n "$BASE_ZTS_TAG" ]]; then
+                echo "php_image=php:${{ matrix.php }}-zts" >> "$GITHUB_OUTPUT"
+              else
+                echo "php_image=php:${{ matrix.php }}-cli" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "php_image=php:${{ matrix.php }}-cli" >> "$GITHUB_OUTPUT"
             fi
           fi
 
-          if [[ "${{ matrix.ts }}" == "zts" ]]; then
+          # Image tags follow the base images: no -zts suffix when there is no
+          # NTS/ZTS distinction (8.6+), so the tag is just latest-php8.6[-alpine].
+          if [[ "${{ matrix.ts }}" == "zts" && -n "$BASE_ZTS_TAG" ]]; then
             TS_SUFFIX="-zts"
           else
             TS_SUFFIX=""
