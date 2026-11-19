@@ -39,10 +39,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.2', '8.3', '8.4', '8.5', '8.6']
         arch: ['x86_64', 'arm64']
         ts: ['nts', 'zts']
         libc: ['glibc', 'musl']
+        exclude:
+          # PHP 8.6+ official images are ZTS only: there is no NTS build and no
+          # -zts tag (docker-library/php#1686), so php:8.6-cli is already ZTS.
+          - php: '8.6'
+            ts: 'nts'
     steps:
       - uses: actions/checkout@v6
 
@@ -50,15 +55,21 @@ jobs:
         id: docker
         run: |
           PHP_MINOR="${{ matrix.php }}"
+          # PHP 8.6+ images are ZTS only: the plain tags are already thread-safe
+          # and there is no -zts tag.
+          ZTS_TAG="-zts"
+          if [[ "$(printf '%s\n' "$PHP_MINOR" 8.6 | sort -V | head -1)" == "8.6" ]]; then
+            ZTS_TAG=""
+          fi
           if [[ "${{ matrix.libc }}" == "musl" ]]; then
             if [[ "${{ matrix.ts }}" == "zts" ]]; then
-              echo "image=php:${PHP_MINOR}-zts-alpine" >> "$GITHUB_OUTPUT"
+              echo "image=php:${PHP_MINOR}${ZTS_TAG}-alpine" >> "$GITHUB_OUTPUT"
             else
               echo "image=php:${PHP_MINOR}-alpine" >> "$GITHUB_OUTPUT"
             fi
           else
             if [[ "${{ matrix.ts }}" == "zts" ]]; then
-              echo "image=php:${PHP_MINOR}-zts" >> "$GITHUB_OUTPUT"
+              echo "image=php:${PHP_MINOR}${ZTS_TAG:--cli}" >> "$GITHUB_OUTPUT"
             else
               echo "image=php:${PHP_MINOR}-cli" >> "$GITHUB_OUTPUT"
             fi
@@ -119,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.2', '8.3', '8.4', '8.5', '8.6']
     steps:
       - uses: actions/checkout@v6
 
@@ -153,7 +164,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.2', '8.3', '8.4', '8.5', '8.6']
     steps:
       - uses: actions/checkout@v6
 
