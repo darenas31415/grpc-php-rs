@@ -44,7 +44,9 @@ FROM php:8.5-alpine
 COPY --from=ghcr.io/extphprs/grpc-php-rs:latest-php8.5-alpine /usr/local/ /usr/local/
 ```
 
-Available tags: `latest-php{8.2,8.3,8.4,8.5}` for Debian, append `-alpine` for Alpine, append `-zts` for thread-safe (e.g. `latest-php8.5-alpine-zts`). Version-pinned tags like `v0.2.1-php8.5-alpine` are also available.
+Available tags: `latest-php{8.2,8.3,8.4,8.5,8.6}` for Debian, append `-alpine` for Alpine, append `-zts` for thread-safe on 8.5 and earlier (e.g. `latest-php8.5-alpine-zts`). Version-pinned tags like `v0.2.1-php8.5-alpine` are also available.
+
+PHP 8.6 and later have no NTS/ZTS distinction: the official `php:8.6` images are always thread-safe ([docker-library/php#1686](https://github.com/docker-library/php/pull/1686)), so there is no `-zts` suffix. Use `latest-php8.6` (Debian, with `FROM php:8.6-cli`) or `latest-php8.6-alpine` (Alpine, with `FROM php:8.6-alpine`).
 
 ### Via PIE
 
@@ -73,11 +75,15 @@ echo "extension=grpc" > $(php -r "echo PHP_CONFIG_FILE_SCAN_DIR;")/grpc.ini
 | PHP | OS | Arch | Thread Safety |
 |-----|-------|--------|---------------|
 | 8.2, 8.3, 8.4, 8.5 | Linux (glibc) | x86_64 | NTS, ZTS |
+| 8.6 | Linux (glibc) | x86_64 | ZTS |
 | 8.2, 8.3, 8.4, 8.5 | Linux (glibc) | ARM64 | NTS, ZTS |
+| 8.6 | Linux (glibc) | ARM64 | ZTS |
 | 8.2, 8.3, 8.4, 8.5 | Linux (musl/Alpine) | x86_64 | NTS, ZTS |
+| 8.6 | Linux (musl/Alpine) | x86_64 | ZTS |
 | 8.2, 8.3, 8.4, 8.5 | Linux (musl/Alpine) | ARM64 | NTS, ZTS |
-| 8.2, 8.3, 8.4, 8.5 | macOS | ARM64 | NTS |
-| 8.2, 8.3, 8.4, 8.5 | Windows | x86_64 | NTS |
+| 8.6 | Linux (musl/Alpine) | ARM64 | ZTS |
+| 8.2, 8.3, 8.4, 8.5, 8.6 | macOS | ARM64 | NTS |
+| 8.2, 8.3, 8.4, 8.5, 8.6 | Windows | x86_64 | NTS |
 
 ## Usage
 
