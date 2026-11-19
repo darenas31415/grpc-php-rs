@@ -6,11 +6,16 @@ CONTAINER="grpc-rs-zts-test"
 
 echo "=== Building test container ==="
 docker build -t grpc-rs-test -f - . <<'DOCKERFILE'
-FROM dunglas/frankenphp:1-php8.5
+FROM dunglas/frankenphp:1-php8.6
 
-# Copy the built extension
-COPY target/release/libgrpc_php_rs.so /usr/local/lib/php/extensions/no-debug-zts-20250925/grpc.so
-RUN echo "extension=grpc.so" > /usr/local/etc/php/conf.d/grpc.ini
+# Copy the built extension into this PHP build's extension_dir (the API
+# number in the path changes with every PHP release, so detect it)
+COPY target/release/libgrpc_php_rs.so /tmp/grpc.so
+RUN EXT_DIR="$(php -i | grep '^extension_dir' | head -1 | sed 's/.*=> //' | awk '{print $1}')" \
+    && mkdir -p "$EXT_DIR" \
+    && cp /tmp/grpc.so "$EXT_DIR/grpc.so" \
+    && rm /tmp/grpc.so \
+    && echo "extension=grpc.so" > /usr/local/etc/php/conf.d/grpc.ini
 
 # Copy test files
 COPY tests/ /app/tests/

@@ -1,5 +1,5 @@
 # Stage 1: Build the Rust extension for NTS Linux
-FROM php:8.5-cli AS builder
+FROM php:8.6-cli AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl build-essential pkg-config protobuf-compiler libclang-dev \
@@ -23,7 +23,7 @@ RUN cargo build --release \
 
 # ---------------------------------------------------------------------------
 # Stage 2: Build the Rust extension for ZTS Linux
-FROM dunglas/frankenphp:1-php8.5 AS builder-zts
+FROM dunglas/frankenphp:1-php8.6 AS builder-zts
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl build-essential pkg-config protobuf-compiler libclang-dev \
@@ -43,7 +43,7 @@ RUN cargo build --release
 
 # ---------------------------------------------------------------------------
 # Stage 3: Base NTS test image (extension installed, no Composer deps)
-FROM php:8.5-cli AS test-base
+FROM php:8.6-cli AS test-base
 
 RUN apt-get update && apt-get install -y --no-install-recommends git unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -92,7 +92,7 @@ CMD ["php", "tests/test_grpc_gcp_compat.php"]
 
 # ---------------------------------------------------------------------------
 # Stage 7: ZTS (thread-safe) PHP via FrankenPHP
-FROM dunglas/frankenphp:1-php8.5 AS test-zts
+FROM dunglas/frankenphp:1-php8.6 AS test-zts
 
 RUN EXT_DIR="$(php -i | grep '^extension_dir' | head -1 | sed 's/.*=> //' | awk '{print $1}')" \
     && mkdir -p "$EXT_DIR" \
@@ -213,7 +213,7 @@ CMD ["sh", "-c", "grpc-test-server 2>/dev/null & sleep 1 && php tests/parity_pro
 
 # ---------------------------------------------------------------------------
 # Stage 9e: Parity probe under official ext-grpc (pecl)
-FROM php:8.5-cli AS test-parity-extgrpc
+FROM php:8.6-cli AS test-parity-extgrpc
 
 RUN apt-get update && apt-get install -y --no-install-recommends $PHPIZE_DEPS zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
